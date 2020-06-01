@@ -1,0 +1,134 @@
+/*Project 3: Environment Monitor
+   Ahmad Alshwawra
+   This sketch is written as a partial fullfilment of
+   "Arduino Mastery Projects" online course
+   -----------------------------------------------------
+   This sketch uses Arduino UNO R3 - 5V to monitor Humidity,
+   temperature and light intensity and display them on LCD each 5 sec.
+   The system includes a button to change tepmerature display from
+   Celcius to Fehranheit.
+
+   Components:
+    - Arduino UNO
+    - Breadboard
+    - DHT11 sensor breakout
+    - Photoresistor breakout
+    - Push button breakout
+    - LCD screen 16X2
+    - LCD I2C Backpack
+    - Jumper wires
+
+   The LED's are connected to digital outputs 3 to 13.
+   The button module is connected to digital input 2.
+*/
+#include "DHT.h" //include DHT11 Liberary
+#include <LiquidCrystal_I2C.h> //include the I2C Backpack
+//and LCD Liberary
+
+#define DHTPIN 2
+#define PHOTORES A0
+#define BUTTON 13
+
+#define DHTTYPE DHT11   // the DHT sensor type DHT 11
+
+int n = 100; //counter
+boolean centigrade = 1; //reference statue for temperature display
+boolean previousbuttonstate = 0; //reference statue for botton
+
+DHT dht(DHTPIN, DHTTYPE); // Initialize DHT sensor
+LiquidCrystal_I2C lcd(0x27, 16, 2); //specify the I2C slave
+//address and the type of LCD
+
+void setup() {
+  dht.begin();
+
+  //Starting the LCD
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(2, 0);
+  lcd.print("Environment");
+  lcd.setCursor(3, 1);
+  lcd.print("Monitoring");
+  delay(2000); //wait 2 sec to start measurments
+
+
+}
+
+void loop() {
+  float h; //humidity value
+  float t; //temperature value in celsius
+  float f; //temperature value in Fahrenheit
+  int l; // Light intensity value
+  if (n == 100) //update sensors readings each 5 seconds
+  {
+    h = dht.readHumidity();// Read Humidity
+    t = dht.readTemperature(); // Read temperature as Celsius
+    f = dht.readTemperature(true);// Read temperature as Fahrenheit
+    l = 1023 - analogRead(PHOTORES);// read Light intensity
+    n = 0;
+    // Check if any reads failed and exit early (to try again).
+    if (isnan(h) || isnan(t) || isnan(f)) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Cannot get");
+      lcd.setCursor(0, 1);
+      lcd.print("reading from DHT");
+      return;
+    }
+    else if (centigrade)
+      Celcius(h, t, l);
+    else
+      Fehrenheit(h,f,l);
+  }
+  delay(50); // check the button status each 50 ms
+  boolean currentbuttonstate = digitalRead(BUTTON);
+  if (currentbuttonstate && !previousbuttonstate)
+  {
+    centigrade = !centigrade;
+    if (centigrade)
+      Celcius(h, t, l);
+    else
+      Fehrenheit(h,f,l);
+  }
+  n++;
+  previousbuttonstate = currentbuttonstate;
+}
+
+// Function to display humidity, light intensity, and temperature in Celcius
+void Celcius(float h, float t, int l)
+{
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("H:");
+  lcd.print(h);
+  lcd.setCursor(6, 0);
+  lcd.print("% ");
+  lcd.setCursor(8, 0);
+  lcd.print("T:");
+  lcd.print(t);
+  lcd.setCursor(14, 0);
+  lcd.print("*C");
+  lcd.setCursor(0, 1);
+  lcd.print("Light:");
+  lcd.print(l);
+}
+
+
+// Function to display humidity, light intensity, and temperature in Fehrenheit
+void Fehrenheit(float h, float f, int l)
+{
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("H:");
+  lcd.print(h);
+  lcd.setCursor(6, 0);
+  lcd.print("% ");
+  lcd.setCursor(8, 0);
+  lcd.print("T:");
+  lcd.print(f);
+  lcd.setCursor(14, 0);
+  lcd.print("*f");
+  lcd.setCursor(0, 1);
+  lcd.print("Light:");
+  lcd.print(l);
+}
